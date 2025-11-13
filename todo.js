@@ -265,4 +265,3 @@ function showNotification(message, isError = false) {
 }
 
 
-.
