@@ -338,3 +338,5 @@ function showNotification(message: string, isError: boolean = false): void {
         notification.classList.remove('show');
     }, 3000);
 }
+
+//
