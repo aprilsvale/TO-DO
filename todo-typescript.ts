@@ -1,21 +1,29 @@
-const taskInput = document.getElementById('taskInput');
-const addTaskBtn = document.getElementById('addTaskBtn');
-const taskList = document.getElementById('taskList');
-const filterBtns = document.querySelectorAll('.filter-btn');
-const emptyState = document.getElementById('emptyState');
-const notification = document.getElementById('notification');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const completedCount = document.getElementById('completedCount');
-const totalCount = document.getElementById('totalCount');
-const progressStats = document.getElementById('progressStats');
+interface Task {
+    id: number;
+    text: string;
+    completed: boolean;
+    reminder: boolean;
+    reminderTimerId?: string;
+}
 
-let tasks = [];
-let currentFilter = 'all';
+const taskInput = document.getElementById('taskInput') as HTMLInputElement;
+const addTaskBtn = document.getElementById('addTaskBtn') as HTMLButtonElement;
+const taskList = document.getElementById('taskList') as HTMLUListElement;
+const filterBtns = document.querySelectorAll('.filter-btn') as NodeListOf<HTMLButtonElement>;
+const emptyState = document.getElementById('emptyState') as HTMLDivElement;
+const notification = document.getElementById('notification') as HTMLDivElement;
+const progressFill = document.getElementById('progressFill') as HTMLDivElement;
+const progressText = document.getElementById('progressText') as HTMLSpanElement;
+const completedCount = document.getElementById('completedCount') as HTMLSpanElement;
+const totalCount = document.getElementById('totalCount') as HTMLSpanElement;
+const progressStats = document.getElementById('progressStats') as HTMLDivElement;
+
+let tasks: Task[] = [];
+let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
 init();
 
-function init() {
+function init(): void {
     loadTasksFromStorage();
 
     if (tasks.length === 0) {
@@ -29,12 +37,12 @@ function init() {
     updateAddButtonState();
 }
 
-function updateProgressBar() {
+function updateProgressBar(): void {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.completed).length;
 
-    completedCount.textContent = completedTasks;
-    totalCount.textContent = totalTasks;
+    completedCount.textContent = completedTasks.toString();
+    totalCount.textContent = totalTasks.toString();
 
     const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
@@ -52,7 +60,7 @@ function updateProgressBar() {
     progressStats.style.display = totalTasks === 0 ? 'none' : 'block';
 }
 
-function updateProgressBarColor(percentage) {
+function updateProgressBarColor(percentage: number): void {
     if (percentage === 0) {
         progressFill.style.background = 'linear-gradient(90deg, #e1bee7, #ce93d8)';
     } else if (percentage === 100) {
@@ -68,33 +76,30 @@ function updateProgressBarColor(percentage) {
     }
 }
 
-function setupEventListeners() {
+function setupEventListeners(): void {
     addTaskBtn.addEventListener('click', addTask);
 
-    taskInput.addEventListener('keypress', function(e) {
+    taskInput.addEventListener('keypress', function(e: KeyboardEvent) {
         if (e.key === 'Enter' && taskInput.value.trim() !== '') {
             addTask();
         }
     });
 
-
     taskInput.addEventListener('input', updateAddButtonState);
-
-
     taskInput.addEventListener('focus', updateAddButtonState);
     taskInput.addEventListener('blur', updateAddButtonState);
 
     filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(this: HTMLButtonElement) {
             filterBtns.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentFilter = this.getAttribute('data-filter');
+            currentFilter = this.getAttribute('data-filter') as 'all' | 'active' | 'completed';
             renderTasks();
         });
     });
 }
 
-function updateAddButtonState() {
+function updateAddButtonState(): void {
     const isEmpty = taskInput.value.trim() === '';
 
     if (isEmpty) {
@@ -108,23 +113,23 @@ function updateAddButtonState() {
     }
 }
 
-function loadTasksFromStorage() {
+function loadTasksFromStorage(): void {
     const storedTasks = localStorage.getItem('todoTasks');
     if (storedTasks) {
-        tasks = JSON.parse(storedTasks);
+        tasks = JSON.parse(storedTasks) as Task[];
     }
 }
 
-function saveTasksToStorage() {
+function saveTasksToStorage(): void {
     localStorage.setItem('todoTasks', JSON.stringify(tasks));
 }
 
-async function loadTasksFromServer() {
+async function loadTasksFromServer(): Promise<void> {
     try {
         const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=5');
         const serverTasks = await response.json();
 
-        tasks = serverTasks.map(task => ({
+        tasks = serverTasks.map((task: any) => ({
             id: task.id,
             text: task.title,
             completed: task.completed,
@@ -141,7 +146,7 @@ async function loadTasksFromServer() {
     }
 }
 
-function addTask() {
+function addTask(): void {
     const text = taskInput.value.trim();
 
     if (text === '') {
@@ -149,12 +154,12 @@ function addTask() {
         return;
     }
 
-    const newTask = {
+    const newTask: Task = {
         id: Date.now(),
         text: text,
         completed: false,
         reminder: false,
-        reminderTimerId: undefined
+
     };
 
     tasks.push(newTask);
@@ -166,14 +171,13 @@ function addTask() {
     showNotification('Magic has been added!');
 }
 
-function deleteTask(id) {
-
+function deleteTask(id: number): void {
     const taskToDelete = tasks.find(task => task.id === id);
     if (taskToDelete && taskToDelete.reminderTimerId) {
-        const timerId = window[taskToDelete.reminderTimerId];
+        const timerId = (window as any)[taskToDelete.reminderTimerId];
         if (timerId) {
             clearTimeout(timerId);
-            delete window[taskToDelete.reminderTimerId];
+            delete (window as any)[taskToDelete.reminderTimerId];
         }
     }
 
@@ -184,24 +188,26 @@ function deleteTask(id) {
     showNotification('Magic has been deleted!');
 }
 
-function toggleTaskStatus(id) {
+function toggleTaskStatus(id: number): void {
     const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
     const newCompletedStatus = !task.completed;
 
     tasks = tasks.map(task => {
         if (task.id === id) {
-
             if (newCompletedStatus && task.reminderTimerId) {
-                const timerId = window[task.reminderTimerId];
+                const timerId = (window as any)[task.reminderTimerId];
                 if (timerId) {
                     clearTimeout(timerId);
-                    delete window[task.reminderTimerId];
+                    delete (window as any)[task.reminderTimerId];
                 }
+
+                const { reminderTimerId, ...rest } = task;
                 return {
-                    ...task,
+                    ...rest,
                     completed: newCompletedStatus,
-                    reminder: false,
-                    reminderTimerId: undefined
+                    reminder: false
                 };
             }
             return { ...task, completed: newCompletedStatus };
@@ -214,7 +220,7 @@ function toggleTaskStatus(id) {
     updateProgressBar();
 }
 
-function setReminder(id) {
+function setReminder(id: number): void {
     tasks = tasks.map(task => {
         if (task.id === id) {
             return { ...task, reminder: !task.reminder };
@@ -227,11 +233,10 @@ function setReminder(id) {
     updateProgressBar();
 
     const task = tasks.find(t => t.id === id);
-    if (task.reminder) {
+    if (task && task.reminder) {
         showNotification('We will remind you of your magical duties!');
 
         const reminderTimerId = `reminder_${id}`;
-
 
         tasks = tasks.map(t => {
             if (t.id === id) {
@@ -242,8 +247,7 @@ function setReminder(id) {
 
         saveTasksToStorage();
 
-
-        const timerId = setTimeout(() => {
+        (window as any)[reminderTimerId] = setTimeout(() => {
             const currentTask = tasks.find(t => t.id === id);
             if (currentTask && !currentTask.completed && currentTask.reminder) {
                 showNotification(`Magical reminder: "${currentTask.text}"`);
@@ -251,24 +255,25 @@ function setReminder(id) {
 
             tasks = tasks.map(t => {
                 if (t.id === id) {
-                    const { reminderTimerId, ...rest } = t;
-                    return rest;
+
+                    return {
+                        id: t.id,
+                        text: t.text,
+                        completed: t.completed,
+                        reminder: t.reminder
+                    } as Task;
                 }
                 return t;
             });
             saveTasksToStorage();
         }, 5000);
-
-
-        window[reminderTimerId] = timerId;
     } else {
-
         const taskWithTimer = tasks.find(t => t.id === id);
         if (taskWithTimer && taskWithTimer.reminderTimerId) {
-            const timerId = window[taskWithTimer.reminderTimerId];
+            const timerId = (window as any)[taskWithTimer.reminderTimerId];
             if (timerId) {
                 clearTimeout(timerId);
-                delete window[taskWithTimer.reminderTimerId];
+                delete (window as any)[taskWithTimer.reminderTimerId];
             }
         }
 
@@ -276,7 +281,7 @@ function setReminder(id) {
     }
 }
 
-function renderTasks() {
+function renderTasks(): void {
     let filteredTasks = tasks;
     taskList.innerHTML = '';
 
@@ -308,9 +313,9 @@ function renderTasks() {
                 </div>
             `;
 
-            const checkbox = taskItem.querySelector('.task-checkbox');
-            const reminderBtn = taskItem.querySelector('.reminder-btn');
-            const deleteBtn = taskItem.querySelector('.delete-btn');
+            const checkbox = taskItem.querySelector('.task-checkbox') as HTMLInputElement;
+            const reminderBtn = taskItem.querySelector('.reminder-btn') as HTMLButtonElement;
+            const deleteBtn = taskItem.querySelector('.delete-btn') as HTMLButtonElement;
 
             checkbox.addEventListener('change', () => toggleTaskStatus(task.id));
             reminderBtn.addEventListener('click', () => setReminder(task.id));
@@ -321,7 +326,7 @@ function renderTasks() {
     }
 }
 
-function showNotification(message, isError = false) {
+function showNotification(message: string, isError: boolean = false): void {
     notification.textContent = message;
     notification.style.background = isError
         ? 'linear-gradient(135deg, #b825c9 0%, #b171bb 100%)'
@@ -333,4 +338,3 @@ function showNotification(message, isError = false) {
         notification.classList.remove('show');
     }, 3000);
 }
-

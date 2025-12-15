@@ -231,3 +231,14 @@ button:active {
     color: #6d1991;
     font-weight: 500;
 }
+
+#addTaskBtn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #b171bb 0%, #a45cb0 100%);
+}
+
+#addTaskBtn.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
